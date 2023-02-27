@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "target": "ES5",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "jsx": "react-jsx",
+        "baseUrl": ".",
+        "paths": {
+            "@components/*" : ["src/components/*"],
+            "@features/*": ["features/*"],
+            "@services/*": ["services/*"],
+            "@styles/*": ["styles/*"],
+            "@assets/*": ["assets/*"],
+            "@data/*": ["data/*"],
+            "@store/*": ["store/*"],
+            "@hooks/*": ["hooks/*"],
+            "@utils/*": ["utils/*"],
+            "@pages/*": ["pages/*"],
+            "@types/*": ["types/*"],
+            "@context/*": ["context/*"]
+        },
+    },
+    "ts-node": {
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
+    },
+    "include": ["src/**/*","Global.d.ts"],
+}
