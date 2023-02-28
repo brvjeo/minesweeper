@@ -1,8 +1,12 @@
-import React from 'react';
-import { FC, ReactElement } from 'react';
+import React, { FC } from 'react';
+import { Game } from '@components/Game/Game';
 
-const App: FC = (): ReactElement | null => {
-	return <h1>Hello World!</h1>;
+const App: FC = () => {
+	return (
+		<div className={'container'}>
+			<Game />
+		</div>
+	);
 };
 
 export default App;

@@ -7,7 +7,7 @@ const paths: WebpackPaths = {
 	build: path.resolve(__dirname, 'build'),
 	extra: {
 		html: path.resolve(__dirname, 'public'),
-	},
+	}
 };
 
 export default ({ mode }: WebpackEnvironmentalVariable) =>

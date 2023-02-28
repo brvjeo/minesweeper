@@ -1,0 +1,26 @@
+@use '@styles/mixins.scss';
+
+.panel {
+    background: lightgrey;
+    border-style: outset;
+}
+
+.header, .grid {
+    padding: 10px;
+}
+
+.header {
+    @include mixins.flexible(space-between, center, row);
+}
+
+.reset {
+    width: 26px;
+    height: 26px;
+    background-position: center;
+    background-size: cover;
+}
+
+.grid {
+    border-style: inset;
+    @include mixins.flexible();
+}

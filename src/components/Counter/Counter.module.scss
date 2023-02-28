@@ -1,0 +1,5 @@
+@use '@styles/mixins.scss';
+
+.counter{
+    @include mixins.flexible(center, stretch, row);
+}

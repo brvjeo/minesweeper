@@ -4,7 +4,9 @@ import path from 'path';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { WebpackBuilder } from '../types';
 
-const pluginsBuilder: WebpackBuilder<webpack.WebpackPluginInstance[]> = (options) => {
+const pluginsBuilder: WebpackBuilder<webpack.WebpackPluginInstance[]> = (
+	options
+) => {
 	return [
 		new HtmlWebpackPlugin({
 			template: path.join(options.paths.extra.html, 'index.html'),

@@ -5,6 +5,12 @@ const serverBuilder: WebpackBuilder<webpackDevServer.Configuration> = (option) =
 	return {
 		historyApiFallback: true,
 		port: 3000,
+		client: {
+			overlay: {
+				warnings: false,
+				errors: true,
+			},
+		},
 	};
 };
 
