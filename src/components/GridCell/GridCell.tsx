@@ -1,6 +1,5 @@
 import React, { CSSProperties, FC, MouseEventHandler } from 'react';
 import styles from './GridCell.module.scss';
-import { setBackgroundImage } from '../../utils';
 import { Cell } from '../../types';
 
 type Props = Cell & {
@@ -17,13 +16,15 @@ export const GridCell: FC<Props> = ({
 	isQuestion,
 	isFlag,
 	bombsAround,
-	image,
+	point,
+	isOpened,
 	...props
 }) => {
 	return (
 		<div
+			data-x={point.x}
+			data-y={point.y}
 			className={styles.cell}
-			style={{ backgroundImage: setBackgroundImage(image) }}
 			{...props}
 		/>
 	);

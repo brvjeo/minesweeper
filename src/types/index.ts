@@ -4,9 +4,15 @@ export type Cell = {
 	id: string;
 	isBomb: boolean;
 	isQuestion: boolean;
+	isOpened: boolean;
 	isFlag: boolean;
 	bombsAround: number;
-	image: string;
+	point: Point;
+};
+
+export type Point = {
+	x: number;
+	y: number;
 };
 
 export type Grid = Array<Array<Cell>>;

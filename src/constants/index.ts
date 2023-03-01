@@ -21,6 +21,14 @@ import DigitSix from '../assets/digits/6.png';
 import DigitSeven from '../assets/digits/7.png';
 import DigitEight from '../assets/digits/8.png';
 import DigitNine from '../assets/digits/9.png';
+import CountOne from '../assets/counts/1.png';
+import CountTwo from '../assets/counts/2.png';
+import CountThree from '../assets/counts/3.png';
+import CountFour from '../assets/counts/4.png';
+import CountFive from '../assets/counts/5.png';
+import CountSix from '../assets/counts/6.png';
+import CountSeven from '../assets/counts/7.png';
+import CountEight from '../assets/counts/8.png';
 
 export const Reactions = {
 	ReactionSad,
@@ -54,7 +62,20 @@ export const Digits = [
 	DigitNine,
 ];
 
+export const Counts = [
+	'',
+	CountOne,
+	CountTwo,
+	CountThree,
+	CountFour,
+	CountFive,
+	CountSix,
+	CountSeven,
+	CountEight,
+];
+
 export const BOMBS_COUNT = 40;
-export const GRID_WIDTH = 16;
-export const GRID_HEIGHT = 16;
+export const GRID_WIDTH = 5;
+export const GRID_HEIGHT = 5;
 export const TIME_LIMIT = 600;
+export const BOMBS_RATIO = 0.2;
