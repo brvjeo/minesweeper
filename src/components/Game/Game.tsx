@@ -25,6 +25,10 @@ export const Game: FC = () => {
 	const [status, setStatus] = useState<ProcessStatus>('idle');
 
 	useEffect(() => {
+		initializeGrid(grid, GRID_WIDTH, GRID_HEIGHT);
+	}, []);
+
+	useEffect(() => {
 		if (status === 'restarted') {
 			reset();
 			initializeGrid(grid, GRID_WIDTH, GRID_HEIGHT);
@@ -34,18 +38,20 @@ export const Game: FC = () => {
 	const resetButtonHandler: MouseEventHandler<HTMLButtonElement> =
 		useCallback((event) => {
 			switch (event.type) {
-				case 'click':
-					if (status !== 'idle' && status !== 'restarted') {
-						setStatus('restarted');
-					}
-					break;
 				case 'mouseup':
 					event.currentTarget.style.backgroundImage =
-						setBackgroundImage(Reactions.ReactionPushedSmile);
+						setBackgroundImage(Reactions.ReactionSmile);
+					setStatus((state) => {
+						if (state === 'started' || state === 'ended') {
+							return 'restarted';
+						} else {
+							return state;
+						}
+					});
 					break;
 				case 'mousedown':
 					event.currentTarget.style.backgroundImage =
-						setBackgroundImage(Reactions.ReactionSmile);
+						setBackgroundImage(Reactions.ReactionPushedSmile);
 					break;
 			}
 		}, []);
@@ -61,7 +67,6 @@ export const Game: FC = () => {
 							Reactions.ReactionSmile
 						),
 					}}
-					onClick={resetButtonHandler}
 					onMouseUp={resetButtonHandler}
 					onMouseDown={resetButtonHandler}
 				/>
