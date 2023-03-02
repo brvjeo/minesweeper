@@ -1,4 +1,4 @@
-import { Cell, Grid, Point } from '../types';
+import { Cell, Grid, Matrix, Point } from '../types';
 import {
 	BOMBS_COUNT,
 	Counts,
@@ -7,82 +7,98 @@ import {
 	GRID_WIDTH,
 } from '../constants';
 
-export const fillGrid = (grid: Grid, width: number, height: number): void => {
-	for (let x = 0; x < width; x++) {
+export const fillMatrix = (matrix: Matrix): Matrix => {
+	for (let x = 0; x < GRID_WIDTH; x++) {
 		const row: Array<Cell> = [];
-		for (let y = 0; y < height; y++) {
+		for (let y = 0; y < GRID_HEIGHT; y++) {
 			row[y] = {
-				id: crypto.randomUUID(),
-				bombsAround: 0,
+				point: { x, y },
+				count: 0,
 				isBomb: false,
 				isFlag: false,
 				isQuestion: false,
-				point: { x, y },
 				isOpened: false,
+				isExploded: false,
+				isWrong: false,
 			};
 		}
-		grid[x] = row;
+		matrix[x] = row;
 	}
+
+	return matrix;
 };
 
-export const launchGame = (x: number, y: number, grid: Grid): void => {
-	const initialBombs = getAvailableBombPoints({ x, y });
+export const updateGrid = (grid: Grid): Grid => ({ ...grid });
 
-	initialBombs.forEach((point) => {
-		setBomb(point, grid);
-		updateCounters(point, grid);
-	});
-	fillBombs({ x, y }, initialBombs, grid);
+export const setFlagOrQuestion = ({ x, y }: Point, grid: Grid): Grid => {
+	const cell = grid.matrix[x][y];
+
+	if (cell.isOpened) return grid;
+
+	if (cell.isFlag) {
+		cell.isQuestion = true;
+		cell.isFlag = false;
+		grid.questions++;
+		grid.flags--;
+	} else if (cell.isQuestion) {
+		cell.isQuestion = false;
+		grid.questions--;
+	} else {
+		cell.isFlag = true;
+		grid.flags++;
+	}
+
+	return {
+		...grid,
+	};
 };
 
-export const fillBombs = (
-	point: Point,
-	exclude: Array<Point>,
-	grid: Grid
-): void => {
-	const points: Array<Point> = [];
+export const fillGrid = (point: Point, grid: Grid): Grid => {
+	const availablePoints: Array<Point> = [];
 
 	for (let x = 0; x < GRID_WIDTH; x++) {
 		for (let y = 0; y < GRID_HEIGHT; y++) {
-			if (!isInSquare({ x, y }, point)) {
-				points.push({ x, y });
+			if (!pointsEqual({ x, y }, point)) {
+				availablePoints.push({ x, y });
 			}
 		}
 	}
 
-	const indexes = getRandomArray(0, points.length - 1, 40 - exclude.length);
-	return indexes.forEach((i) => {
-		setBomb(points[i], grid);
-		updateCounters(points[i], grid);
+	const indexes = getRandomArray(0, availablePoints.length - 1, BOMBS_COUNT);
+
+	indexes.forEach((i) => {
+		setBomb(availablePoints[i], grid);
+		grid.bombs.push(availablePoints[i]);
+		updateCounters(availablePoints[i], grid);
 	});
+
+	return {
+		...openFields(point, grid),
+		status: 'started',
+	};
 };
 
-export const getAvailableBombPoints = ({ x, y }: Point): Array<Point> => {
-	const points: Array<Point> = [];
-	const mapper: Record<number, Point> = {
-		0: { x: x - 1, y: y - 1 },
-		1: { x, y: y - 1 },
-		2: { x: x + 1, y: y - 1 },
-		3: { y, x: x + 1 },
-		4: { y: y + 1, x: x + 1 },
-		5: { x, y: y + 1 },
-		6: { x: x - 1, y: y + 1 },
-		7: { x: x - 1, y },
-	};
-
-	for (const point of Object.values(mapper)) {
-		if (isInBounds(GRID_WIDTH, GRID_HEIGHT, point)) {
-			points.push(point);
-		}
+export const openFields = ({ x, y }: Point, grid: Grid): Grid => {
+	if (grid.matrix[x][y].isBomb) {
+		grid.status = 'ended';
+		grid.matrix[x][y].isExploded = true;
+		grid.bombs.forEach(({ x, y }) => {
+			grid.opened++;
+			grid.matrix[x][y].isOpened = true;
+		});
+	} else if (grid.matrix[x][y].count > 0) {
+		grid.opened++;
+		grid.matrix[x][y].isOpened = true;
+	} else {
+		traverse({ x, y }, grid);
 	}
 
-	const list = getRandomArray(
-		0,
-		points.length - 1,
-		getRandom(1, points.length)
-	);
+	return { ...grid };
+};
 
-	return list.map((value) => points[value]);
+export const traverse = ({ x, y }: Point, grid: Grid) => {
+	grid.opened++;
+	grid.matrix[x][y].isOpened = true;
 };
 
 export const getRandomArray = (
@@ -103,62 +119,62 @@ export const getRandomArray = (
 	return [...set];
 };
 
-export const setBomb = ({ x, y }: Point, grid: Grid): void => {
-	grid[x][y].isBomb = true;
+export const setBomb = ({ x, y }: Point, { matrix }: Grid): void => {
+	matrix[x][y].isBomb = true;
 };
 
-export const setOpened = ({ x, y }: Point, grid: Grid) => {
-	grid[x][y].isOpened = true;
+export const setOpened = ({ x, y }: Point, { matrix }: Grid) => {
+	matrix[x][y].isOpened = true;
 };
 
-export const updateCounters = ({ x, y }: Point, grid: Grid) => {
+export const updateCounters = ({ x, y }: Point, { matrix }: Grid) => {
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y - 1 }) &&
-		!grid[x - 1][y - 1].isBomb
+		!matrix[x - 1][y - 1].isBomb
 	) {
-		grid[x - 1][y - 1].bombsAround++;
+		matrix[x - 1][y - 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y - 1 }) &&
-		!grid[x][y - 1].isBomb
+		!matrix[x][y - 1].isBomb
 	) {
-		grid[x][y - 1].bombsAround++;
+		matrix[x][y - 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y - 1 }) &&
-		!grid[x + 1][y - 1].isBomb
+		!matrix[x + 1][y - 1].isBomb
 	) {
-		grid[x + 1][y - 1].bombsAround++;
+		matrix[x + 1][y - 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y }) &&
-		!grid[x + 1][y].isBomb
+		!matrix[x + 1][y].isBomb
 	) {
-		grid[x + 1][y].bombsAround++;
+		matrix[x + 1][y].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y + 1 }) &&
-		!grid[x + 1][y + 1].isBomb
+		!matrix[x + 1][y + 1].isBomb
 	) {
-		grid[x + 1][y + 1].bombsAround++;
+		matrix[x + 1][y + 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y + 1 }) &&
-		!grid[x][y + 1].isBomb
+		!matrix[x][y + 1].isBomb
 	) {
-		grid[x][y + 1].bombsAround++;
+		matrix[x][y + 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y + 1 }) &&
-		!grid[x - 1][y + 1].isBomb
+		!matrix[x - 1][y + 1].isBomb
 	) {
-		grid[x - 1][y + 1].bombsAround++;
+		matrix[x - 1][y + 1].count++;
 	}
 	if (
 		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y }) &&
-		!grid[x - 1][y].isBomb
+		!matrix[x - 1][y].isBomb
 	) {
-		grid[x - 1][y].bombsAround++;
+		matrix[x - 1][y].count++;
 	}
 };
 
@@ -170,26 +186,18 @@ export const isInBounds = (
 	return x < width && x >= 0 && y < height && y >= 0;
 };
 
-export const isInSquare = (point: Point, target: Point) => {
-	return (
-		pointsEqual(point, target) ||
-		(point.x == target.x - 1 && point.y == target.y - 1) ||
-		(point.x == target.x && point.y == target.y - 1) ||
-		(point.x == target.x + 1 && point.y == target.y - 1) ||
-		(point.x == target.x + 1 && point.y == target.y) ||
-		(point.x == target.x + 1 && point.y == target.y + 1) ||
-		(point.x == target.x && point.y == target.y + 1) ||
-		(point.x == target.x - 1 && point.y == target.y + 1) ||
-		(point.x == target.x - 1 && point.y == target.y)
-	);
-};
-
 export const defineField = (cell: Cell): string => {
 	if (cell.isOpened) {
 		if (cell.isBomb) {
-			return Fields.FieldBomb;
-		} else if (cell.bombsAround > 0) {
-			return Counts[cell.bombsAround];
+			if (cell.isExploded) {
+				return Fields.FieldExploded;
+			} else if (cell.isWrong) {
+				return Fields.FieldWrong;
+			} else {
+				return Fields.FieldBomb;
+			}
+		} else if (cell.count > 0) {
+			return Counts[cell.count];
 		} else {
 			return Fields.FieldClear;
 		}

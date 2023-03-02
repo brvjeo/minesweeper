@@ -1,70 +1,86 @@
 import React, {
 	BaseSyntheticEvent,
 	FC,
-	MouseEventHandler,
 	useCallback,
 	useEffect,
+	useRef,
 	useState,
 } from 'react';
 import { Counter } from '@components/Counter/Counter';
-import { useTimer } from '../../hooks/useTimer';
 import styles from './Game.module.scss';
-import { Cell, Grid, Point, ProcessStatus } from '../../types';
+import { Grid, Point, ProcessStatus } from '../../types';
 import {
 	defineField,
-	launchGame,
 	fillGrid,
+	fillMatrix,
 	setBackgroundImage,
-	formatCount,
 	extractPoint,
-	setOpened,
+	setFlagOrQuestion,
+	openFields,
 } from '../../utils';
-import {
-	BOMBS_COUNT,
-	Fields,
-	GRID_HEIGHT,
-	GRID_WIDTH,
-	Reactions,
-} from '../../constants';
+import { BOMBS_COUNT, Reactions } from '../../constants';
 import { GridCell } from '@components/GridCell/GridCell';
 import { Timer } from '@components/Timer/Timer';
 
-let grid: Grid = [];
+const grid: Grid = {
+	matrix: [],
+	opened: 0,
+	flags: 0,
+	questions: 0,
+	bombs: [],
+	status: 'idle',
+};
 
 export const Game: FC = () => {
-	const [bombs, setBombs] = useState(BOMBS_COUNT);
-	const [gridState, setGridState] = useState<Grid>(grid);
-	const [status, setStatus] = useState<ProcessStatus>('idle');
+	const resetRef = useRef<HTMLButtonElement>();
+	const [state, setState] = useState<Grid>(grid);
+
+	useEffect(() => console.log(state));
 
 	useEffect(() => {
-		fillGrid(grid, GRID_WIDTH, GRID_HEIGHT);
-		setGridState(grid.slice());
+		if (state.status === 'ended') {
+			resetRef.current.style.backgroundImage = setBackgroundImage(
+				Reactions.ReactionSad
+			);
+		}
+	}, [state.status]);
+
+	useEffect(() => {
+		setState((state) => ({
+			...state,
+			matrix: fillMatrix(state.matrix),
+		}));
 	}, []);
 
-	useEffect(() => {
-		if (status === 'restarted') {
-			fillGrid(grid, GRID_WIDTH, GRID_HEIGHT);
-			setGridState(grid.slice());
-		}
-	}, [status]);
-
 	const onResetClick = useCallback(
-		(event: BaseSyntheticEvent) => {
-			switch (event.type) {
+		({ type, currentTarget }: BaseSyntheticEvent) => {
+			switch (type) {
 				case 'mouseup':
-					event.currentTarget.style.backgroundImage =
-						setBackgroundImage(Reactions.ReactionSmile);
-					if (status === 'started') {
-						setStatus('restarted');
+					currentTarget.style.backgroundImage = setBackgroundImage(
+						Reactions.ReactionSmile
+					);
+					if (
+						state.status === 'started' ||
+						state.status === 'ended'
+					) {
+						setState((state) => ({
+							matrix: fillMatrix([]),
+							opened: 0,
+							flags: 0,
+							questions: 0,
+							bombs: [],
+							status: 'idle',
+						}));
 					}
 					break;
 				case 'mousedown':
-					event.currentTarget.style.backgroundImage =
-						setBackgroundImage(Reactions.ReactionPushedSmile);
+					currentTarget.style.backgroundImage = setBackgroundImage(
+						Reactions.ReactionPushedSmile
+					);
 					break;
 			}
 		},
-		[status]
+		[state.status]
 	);
 
 	const onLeftClick = useCallback(
@@ -74,68 +90,49 @@ export const Game: FC = () => {
 			try {
 				point = extractPoint(event.target);
 				if (
-					grid[point.x][point.y].isOpened ||
-					grid[point.x][point.y].isQuestion ||
-					grid[point.x][point.y].isFlag
+					state.matrix[point.x][point.y].isOpened ||
+					state.matrix[point.x][point.y].isQuestion ||
+					state.matrix[point.x][point.y].isFlag
 				) {
 					throw new Error();
 				}
+				console.log(state.matrix[point.x][point.y]);
 			} catch {
 				return;
 			}
 
-			switch (status) {
-				case 'restarted':
+			switch (state.status) {
 				case 'idle':
-					launchGame(point.x, point.y, grid);
-					setOpened(point, grid);
-					setGridState(grid.slice(0));
-					setStatus('started');
+					setState((state) => fillGrid(point, state));
 					break;
 				case 'started':
-					setOpened(point, grid);
-					setGridState(grid.slice(0));
+					setState((state) => openFields(point, state));
 					break;
 			}
 		},
-		[status]
+		[state.status]
 	);
 
 	const onRightClick = useCallback(
 		(event: BaseSyntheticEvent) => {
 			event.preventDefault();
 
-			let cell: Cell;
-
 			try {
 				const point = extractPoint(event.target);
-				cell = grid[point.x][point.y];
-				if (cell.isOpened) throw new Error();
+				setState((state) => setFlagOrQuestion(point, state));
 			} catch {
 				return;
 			}
-
-			if (cell.isFlag) {
-				cell.isQuestion = true;
-				cell.isFlag = false;
-				setBombs((value) => ++value);
-			} else if (cell.isQuestion) {
-				cell.isQuestion = false;
-			} else {
-				cell.isFlag = true;
-				setBombs((value) => --value);
-			}
-
-			setGridState(grid.slice(0));
 		},
-		[status]
+		[extractPoint]
 	);
 
 	return (
 		<div className={styles.panel}>
 			<div className={styles.header}>
-				<Counter count={bombs} />
+				<Counter count={BOMBS_COUNT - state.flags} />
 				<button
+					ref={resetRef}
 					className={styles.reset}
 					style={{
 						backgroundImage: setBackgroundImage(
@@ -145,14 +142,14 @@ export const Game: FC = () => {
 					onMouseUp={onResetClick}
 					onMouseDown={onResetClick}
 				/>
-				<Timer status={status} />
+				<Timer status={state.status} />
 			</div>
 			<div
 				className={styles.grid}
 				onClick={onLeftClick}
 				onContextMenu={onRightClick}
 			>
-				{gridState.map((row, x) => {
+				{state.matrix.map((row, x) => {
 					return (
 						<div key={x}>
 							{row.map((cell, y) => {
@@ -164,7 +161,7 @@ export const Game: FC = () => {
 												defineField(cell)
 											),
 										}}
-										{...cell}
+										point={cell.point}
 									/>
 								);
 							})}

@@ -5,10 +5,10 @@ import ReactionWow from '../assets/reactions/wow.png';
 import ReactionGlasses from '../assets/reactions/glasses.png';
 import FieldUnknown from '../assets/fields/unknown.png';
 import FieldBomb from '../assets/fields/bomb.png';
-import FieldClear from '../assets/fields/empty.png';
+import FieldClear from '../assets/fields/clear.png';
 import FieldFlag from '../assets/fields/flag.png';
-import FieldFailed from '../assets/fields/exploded.png';
-import FieldDefused from '../assets/fields/neutralized.png';
+import FieldExploded from '../assets/fields/exploded.png';
+import FieldWrong from '../assets/fields/wrong.png';
 import FieldQuestion from '../assets/fields/question.png';
 import FieldPushedQuestion from '../assets/fields/question_pushed.png';
 import DigitZero from '../assets/digits/0.png';
@@ -43,8 +43,8 @@ export const Fields = {
 	FieldBomb,
 	FieldClear,
 	FieldFlag,
-	FieldFailed,
-	FieldDefused,
+	FieldWrong,
+	FieldExploded,
 	FieldQuestion,
 	FieldPushedQuestion,
 } as const;
@@ -77,5 +77,3 @@ export const Counts = [
 export const BOMBS_COUNT = 40;
 export const GRID_WIDTH = 16;
 export const GRID_HEIGHT = 16;
-export const TIME_LIMIT = 600;
-export const BOMBS_RATIO = 0.2;

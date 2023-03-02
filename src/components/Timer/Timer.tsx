@@ -18,6 +18,7 @@ export const Timer: FC<Props> = ({ status }) => {
 			case 'ended':
 				stop();
 				break;
+			case 'idle':
 			case 'restarted':
 				reset();
 				break;
