@@ -1,17 +1,12 @@
-import React, { CSSProperties, FC, MouseEventHandler } from 'react';
+import React, { CSSProperties, FC } from 'react';
 import styles from './GridCell.module.scss';
 import { Cell } from '../../types';
 
 type Props = Cell & {
-	onClick: MouseEventHandler<HTMLDivElement>;
-	onMouseDown: MouseEventHandler<HTMLDivElement>;
-	onMouseUp: MouseEventHandler<HTMLDivElement>;
-	className?: string;
 	style?: CSSProperties;
 };
 
 export const GridCell: FC<Props> = ({
-	id,
 	isBomb,
 	isQuestion,
 	isFlag,

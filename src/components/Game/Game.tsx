@@ -1,4 +1,5 @@
 import React, {
+	BaseSyntheticEvent,
 	FC,
 	MouseEventHandler,
 	useCallback,
@@ -8,12 +9,15 @@ import React, {
 import { Counter } from '@components/Counter/Counter';
 import { useTimer } from '../../hooks/useTimer';
 import styles from './Game.module.scss';
-import { Grid, ProcessStatus } from '../../types';
+import { Cell, Grid, Point, ProcessStatus } from '../../types';
 import {
 	defineField,
 	launchGame,
 	fillGrid,
 	setBackgroundImage,
+	formatCount,
+	extractPoint,
+	setOpened,
 } from '../../utils';
 import {
 	BOMBS_COUNT,
@@ -23,11 +27,11 @@ import {
 	Reactions,
 } from '../../constants';
 import { GridCell } from '@components/GridCell/GridCell';
+import { Timer } from '@components/Timer/Timer';
 
 let grid: Grid = [];
 
 export const Game: FC = () => {
-	const { time, start, reset } = useTimer();
 	const [bombs, setBombs] = useState(BOMBS_COUNT);
 	const [gridState, setGridState] = useState<Grid>(grid);
 	const [status, setStatus] = useState<ProcessStatus>('idle');
@@ -39,57 +43,90 @@ export const Game: FC = () => {
 
 	useEffect(() => {
 		if (status === 'restarted') {
-			reset();
 			fillGrid(grid, GRID_WIDTH, GRID_HEIGHT);
 			setGridState(grid.slice());
-		} else if (status === 'started') {
-			start();
 		}
 	}, [status]);
 
-	const resetButtonHandler: MouseEventHandler<HTMLButtonElement> =
-		useCallback(
-			(event) => {
-				switch (event.type) {
-					case 'mouseup':
-						event.currentTarget.style.backgroundImage =
-							setBackgroundImage(Reactions.ReactionSmile);
-						if (status === 'started') {
-							setStatus('restarted');
-						}
-						break;
-					case 'mousedown':
-						event.currentTarget.style.backgroundImage =
-							setBackgroundImage(Reactions.ReactionPushedSmile);
-						break;
+	const onResetClick = useCallback(
+		(event: BaseSyntheticEvent) => {
+			switch (event.type) {
+				case 'mouseup':
+					event.currentTarget.style.backgroundImage =
+						setBackgroundImage(Reactions.ReactionSmile);
+					if (status === 'started') {
+						setStatus('restarted');
+					}
+					break;
+				case 'mousedown':
+					event.currentTarget.style.backgroundImage =
+						setBackgroundImage(Reactions.ReactionPushedSmile);
+					break;
+			}
+		},
+		[status]
+	);
+
+	const onLeftClick = useCallback(
+		(event: BaseSyntheticEvent) => {
+			let point: Point;
+
+			try {
+				point = extractPoint(event.target);
+				if (
+					grid[point.x][point.y].isOpened ||
+					grid[point.x][point.y].isQuestion ||
+					grid[point.x][point.y].isFlag
+				) {
+					throw new Error();
 				}
-			},
-			[status]
-		);
-
-	const gridFieldHandler: MouseEventHandler<HTMLDivElement> = useCallback(
-		(event) => {
-			const cell = event.target as HTMLDivElement;
-			const dataX = cell.attributes.getNamedItem('data-x');
-			const dataY = cell.attributes.getNamedItem('data-y');
-
-			if (!dataX || !dataY) return;
-
-			if (grid[+dataX.value][+dataY.value].isOpened) return;
+			} catch {
+				return;
+			}
 
 			switch (status) {
 				case 'restarted':
 				case 'idle':
-					launchGame(+dataX.value, +dataY.value, grid);
-					grid[+dataX.value][+dataY.value].isOpened = true;
+					launchGame(point.x, point.y, grid);
+					setOpened(point, grid);
 					setGridState(grid.slice(0));
 					setStatus('started');
 					break;
 				case 'started':
-					grid[+dataX.value][+dataY.value].isOpened = true;
+					setOpened(point, grid);
 					setGridState(grid.slice(0));
 					break;
 			}
+		},
+		[status]
+	);
+
+	const onRightClick = useCallback(
+		(event: BaseSyntheticEvent) => {
+			event.preventDefault();
+
+			let cell: Cell;
+
+			try {
+				const point = extractPoint(event.target);
+				cell = grid[point.x][point.y];
+				if (cell.isOpened) throw new Error();
+			} catch {
+				return;
+			}
+
+			if (cell.isFlag) {
+				cell.isQuestion = true;
+				cell.isFlag = false;
+				setBombs((value) => ++value);
+			} else if (cell.isQuestion) {
+				cell.isQuestion = false;
+			} else {
+				cell.isFlag = true;
+				setBombs((value) => --value);
+			}
+
+			setGridState(grid.slice(0));
 		},
 		[status]
 	);
@@ -105,12 +142,16 @@ export const Game: FC = () => {
 							Reactions.ReactionSmile
 						),
 					}}
-					onMouseUp={resetButtonHandler}
-					onMouseDown={resetButtonHandler}
+					onMouseUp={onResetClick}
+					onMouseDown={onResetClick}
 				/>
-				<Counter count={time} />
+				<Timer status={status} />
 			</div>
-			<div className={styles.grid} onClick={gridFieldHandler}>
+			<div
+				className={styles.grid}
+				onClick={onLeftClick}
+				onContextMenu={onRightClick}
+			>
 				{gridState.map((row, x) => {
 					return (
 						<div key={x}>
@@ -118,14 +159,9 @@ export const Game: FC = () => {
 								return (
 									<GridCell
 										key={x + '_' + y}
-										onClick={undefined}
-										onMouseDown={undefined}
-										onMouseUp={undefined}
 										style={{
 											backgroundImage: setBackgroundImage(
-												cell.isOpened
-													? defineField(cell)
-													: Fields.FieldUnknown
+												defineField(cell)
 											),
 										}}
 										{...cell}

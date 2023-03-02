@@ -75,7 +75,7 @@ export const Counts = [
 ];
 
 export const BOMBS_COUNT = 40;
-export const GRID_WIDTH = 5;
-export const GRID_HEIGHT = 5;
+export const GRID_WIDTH = 16;
+export const GRID_HEIGHT = 16;
 export const TIME_LIMIT = 600;
 export const BOMBS_RATIO = 0.2;

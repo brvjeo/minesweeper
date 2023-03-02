@@ -1,6 +1,7 @@
 import React, { FC } from 'react';
 import styles from './Counter.module.scss';
 import { Digits } from '../../constants';
+import { formatCount } from '../../utils';
 
 type Props = {
 	count: number;
@@ -9,17 +10,8 @@ type Props = {
 export const Counter: FC<Props> = ({ count }) => {
 	return (
 		<div className={styles.counter}>
-			{count < 10 && <img src={Digits[0]} width={14} height={23} />}
-			{count < 100 && <img src={Digits[0]} width={14} height={23} />}
-			{[...String(count)].map((digit, index) => {
-				return (
-					<img
-						key={`${Digits[digit]}${index}`}
-						width={14}
-						height={23}
-						src={Digits[digit]}
-					/>
-				);
+			{[...formatCount(count)].map((digit, index) => {
+				return <img key={index} src={Digits[digit]} />;
 			})}
 		</div>
 	);

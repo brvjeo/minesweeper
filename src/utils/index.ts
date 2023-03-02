@@ -26,11 +26,35 @@ export const fillGrid = (grid: Grid, width: number, height: number): void => {
 };
 
 export const launchGame = (x: number, y: number, grid: Grid): void => {
-	const initialBombPoints = getAvailableBombPoints({ x, y });
-	const bombs = BOMBS_COUNT - initialBombPoints.length;
+	const initialBombs = getAvailableBombPoints({ x, y });
 
-	setCounter({ x, y }, initialBombPoints.length, grid);
-	initialBombPoints.forEach(({ x, y }) => setBomb({ x, y }, grid));
+	initialBombs.forEach((point) => {
+		setBomb(point, grid);
+		updateCounters(point, grid);
+	});
+	fillBombs({ x, y }, initialBombs, grid);
+};
+
+export const fillBombs = (
+	point: Point,
+	exclude: Array<Point>,
+	grid: Grid
+): void => {
+	const points: Array<Point> = [];
+
+	for (let x = 0; x < GRID_WIDTH; x++) {
+		for (let y = 0; y < GRID_HEIGHT; y++) {
+			if (!isInSquare({ x, y }, point)) {
+				points.push({ x, y });
+			}
+		}
+	}
+
+	const indexes = getRandomArray(0, points.length - 1, 40 - exclude.length);
+	return indexes.forEach((i) => {
+		setBomb(points[i], grid);
+		updateCounters(points[i], grid);
+	});
 };
 
 export const getAvailableBombPoints = ({ x, y }: Point): Array<Point> => {
@@ -83,12 +107,59 @@ export const setBomb = ({ x, y }: Point, grid: Grid): void => {
 	grid[x][y].isBomb = true;
 };
 
-export const setCounter = (
-	{ x, y }: Point,
-	count: number,
-	grid: Grid
-): void => {
-	grid[x][y].bombsAround = count;
+export const setOpened = ({ x, y }: Point, grid: Grid) => {
+	grid[x][y].isOpened = true;
+};
+
+export const updateCounters = ({ x, y }: Point, grid: Grid) => {
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y - 1 }) &&
+		!grid[x - 1][y - 1].isBomb
+	) {
+		grid[x - 1][y - 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y - 1 }) &&
+		!grid[x][y - 1].isBomb
+	) {
+		grid[x][y - 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y - 1 }) &&
+		!grid[x + 1][y - 1].isBomb
+	) {
+		grid[x + 1][y - 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y }) &&
+		!grid[x + 1][y].isBomb
+	) {
+		grid[x + 1][y].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y + 1 }) &&
+		!grid[x + 1][y + 1].isBomb
+	) {
+		grid[x + 1][y + 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y + 1 }) &&
+		!grid[x][y + 1].isBomb
+	) {
+		grid[x][y + 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y + 1 }) &&
+		!grid[x - 1][y + 1].isBomb
+	) {
+		grid[x - 1][y + 1].bombsAround++;
+	}
+	if (
+		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y }) &&
+		!grid[x - 1][y].isBomb
+	) {
+		grid[x - 1][y].bombsAround++;
+	}
 };
 
 export const isInBounds = (
@@ -99,20 +170,37 @@ export const isInBounds = (
 	return x < width && x >= 0 && y < height && y >= 0;
 };
 
+export const isInSquare = (point: Point, target: Point) => {
+	return (
+		pointsEqual(point, target) ||
+		(point.x == target.x - 1 && point.y == target.y - 1) ||
+		(point.x == target.x && point.y == target.y - 1) ||
+		(point.x == target.x + 1 && point.y == target.y - 1) ||
+		(point.x == target.x + 1 && point.y == target.y) ||
+		(point.x == target.x + 1 && point.y == target.y + 1) ||
+		(point.x == target.x && point.y == target.y + 1) ||
+		(point.x == target.x - 1 && point.y == target.y + 1) ||
+		(point.x == target.x - 1 && point.y == target.y)
+	);
+};
+
 export const defineField = (cell: Cell): string => {
-	switch (true) {
-		case cell.isBomb:
+	if (cell.isOpened) {
+		if (cell.isBomb) {
 			return Fields.FieldBomb;
-		case cell.bombsAround > 0:
+		} else if (cell.bombsAround > 0) {
 			return Counts[cell.bombsAround];
-		case cell.isFlag:
-			return Fields.FieldFlag;
-		case cell.isQuestion:
-			return Fields.FieldQuestion;
-		case cell.isOpened:
+		} else {
 			return Fields.FieldClear;
-		default:
+		}
+	} else {
+		if (cell.isFlag) {
+			return Fields.FieldFlag;
+		} else if (cell.isQuestion) {
+			return Fields.FieldQuestion;
+		} else {
 			return Fields.FieldUnknown;
+		}
 	}
 };
 
@@ -120,4 +208,28 @@ export const getRandom = (min: number, max: number): number => {
 	return Math.trunc(Math.random() * (max - min + 1) + min);
 };
 
+export const pointsEqual = (a: Point, b: Point) => {
+	return a.x === b.x && a.y === b.y;
+};
+
 export const setBackgroundImage = (path: string): string => `url(${path})`;
+
+export const formatCount = (number: number) => {
+	let prefix = '';
+	try {
+		prefix += '0'.repeat(3 - String(number).length);
+	} finally {
+		return prefix + String(number);
+	}
+};
+
+export const extractPoint = (target: HTMLDivElement): Point => {
+	const x = target.attributes.getNamedItem('data-x');
+	const y = target.attributes.getNamedItem('data-y');
+
+	if (x !== undefined && y !== undefined) {
+		return { x: +x.value, y: +y.value };
+	} else {
+		throw new Error('!Cell');
+	}
+};
