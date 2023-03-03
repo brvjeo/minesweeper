@@ -1,18 +1,18 @@
-import React, { FC } from 'react';
 import styles from './Counter.module.scss';
+import React, { FC } from 'react';
 import { Digits } from '../../constants';
-import { formatCount } from '../../utils';
+import { formatToTabloidDigits } from '../../utils/index';
 
-type Props = {
+type TProps = {
 	count: number;
 };
 
-export const Counter: FC<Props> = ({ count }) => {
+export const Counter: FC<TProps> = ({ count }) => {
 	return (
 		<div className={styles.counter}>
-			{[...formatCount(count)].map((digit, index) => {
-				return <img key={index} src={Digits[digit]} />;
-			})}
+			{formatToTabloidDigits(count).map((digit, i) => (
+				<img key={i} src={Digits[digit]} />
+			))}
 		</div>
 	);
 };

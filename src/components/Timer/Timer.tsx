@@ -1,13 +1,13 @@
 import React, { FC, useEffect } from 'react';
-import { ProcessStatus } from '../../types';
+import { TProcessStatus } from '../../types';
 import { Counter } from '@components/Counter/Counter';
 import { useTimer } from '../../hooks/useTimer';
 
-type Props = {
-	status: ProcessStatus;
+type TProps = {
+	status: TProcessStatus;
 };
 
-export const Timer: FC<Props> = ({ status }) => {
+export const Timer: FC<TProps> = ({ status }) => {
 	const { time, start, stop, reset } = useTimer();
 
 	useEffect(() => {
@@ -16,11 +16,11 @@ export const Timer: FC<Props> = ({ status }) => {
 				start();
 				break;
 			case 'solved':
-			case 'ended':
+			case 'failed':
 				stop();
 				break;
 			case 'idle':
-			case 'restarted':
+			case 'resetted':
 				reset();
 				break;
 		}

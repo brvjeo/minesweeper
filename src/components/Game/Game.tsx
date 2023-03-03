@@ -1,116 +1,94 @@
-import React, {
-	BaseSyntheticEvent,
-	FC,
-	MouseEvent,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from 'react';
-import { Counter } from '@components/Counter/Counter';
 import styles from './Game.module.scss';
-import { Grid, Point, ProcessStatus } from '../../types';
+import React, { FC, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { Counter } from '@components/Counter/Counter';
+import { TGrid, TPoint } from '../../types';
 import {
-	defineField,
 	fillGrid,
 	fillMatrix,
-	setBackgroundImage,
+	setImage,
 	extractPoint,
 	setFlagOrQuestion,
 	openFields,
+	isNonOpening,
 } from '../../utils';
-import { BOMBS_COUNT, Fields, Reactions } from '../../constants';
-import { GridCell } from '@components/GridCell/GridCell';
+import { BOMBS_COUNT, Reactions } from '../../constants';
 import { Timer } from '@components/Timer/Timer';
-
-const grid: Grid = {
-	matrix: [],
-	opened: 0,
-	flags: 0,
-	questions: 0,
-	bombs: [],
-	status: 'idle',
-};
+import { Grid } from '@components/Grid/Grid';
 
 export const Game: FC = () => {
-	const resetRef = useRef<HTMLButtonElement>();
-	const [state, setState] = useState<Grid>(grid);
+	const ref = useRef<HTMLButtonElement>();
+	const [state, setState] = useState<TGrid>({
+		matrix: fillMatrix([]),
+		opened: 0,
+		flags: 0,
+		questions: 0,
+		bombs: [],
+		status: 'idle',
+	});
 
 	useEffect(() => {
-		if (state.status === 'ended') {
-			resetRef.current.style.backgroundImage = setBackgroundImage(
-				Reactions.ReactionSad
-			);
-		} else if (state.status === 'solved') {
-			resetRef.current.style.backgroundImage = setBackgroundImage(
-				Reactions.ReactionGlasses
-			);
+		switch (state.status) {
+			case 'failed':
+				ref.current.style.backgroundImage = setImage(Reactions.ReactionSad);
+				break;
+			case 'solved':
+				ref.current.style.backgroundImage = setImage(Reactions.ReactionGlasses);
+				break;
 		}
-	}, [state.status, resetRef.current, setBackgroundImage]);
+	}, [state.status]);
 
-	useEffect(() => {
-		setState((state) => ({
-			...state,
-			matrix: fillMatrix(state.matrix),
-		}));
-	}, [fillMatrix]);
-
-	const onResetClick = useCallback(
-		({ type, currentTarget }: MouseEvent<HTMLButtonElement>) => {
-			switch (type) {
+	const resetClickHandler = useCallback(
+		(event: MouseEvent<HTMLButtonElement>) => {
+			switch (event.type) {
 				case 'mouseup':
-					currentTarget.style.backgroundImage = setBackgroundImage(
-						Reactions.ReactionSmile
-					);
-					if (
-						state.status === 'started' ||
-						state.status === 'ended' ||
-						state.status === 'solved'
-					) {
-						setState((state) => ({
+					event.currentTarget.style.backgroundImage = setImage(Reactions.ReactionSmile);
+					if (state.status !== 'idle') {
+						setState({
 							matrix: fillMatrix([]),
 							opened: 0,
 							flags: 0,
 							questions: 0,
 							bombs: [],
 							status: 'idle',
-						}));
+						});
 					}
 					break;
 				case 'mousedown':
-					currentTarget.style.backgroundImage = setBackgroundImage(
+					event.currentTarget.style.backgroundImage = setImage(
 						Reactions.ReactionPushedSmile
 					);
 					break;
 			}
 		},
-		[state.status, fillMatrix, setBackgroundImage]
+		[state.status]
 	);
 
-	const onLeftClick = useCallback(
+	const gridClickHandler = useCallback(
 		(event: MouseEvent<HTMLDivElement>) => {
-			if (event.nativeEvent.button === 2) return;
+			event.preventDefault();
 
-			let point: Point;
+			if (state.status === 'failed' || state.status === 'solved') return;
+
+			let point: TPoint;
 
 			try {
 				point = extractPoint(event.target as HTMLDivElement);
-				if (
-					state.matrix[point.x][point.y].isOpened ||
-					state.matrix[point.x][point.y].isQuestion ||
-					state.matrix[point.x][point.y].isFlag
-				) {
-					throw new Error();
-				}
 			} catch {
 				return;
 			}
 
+			if (event.nativeEvent.button === 2 && event.type === 'contextmenu') {
+				setState((state) => setFlagOrQuestion(point, state));
+				return;
+			} else if (event.nativeEvent.button !== 0) {
+				return;
+			}
+
+			if (isNonOpening(point, state)) return;
+
 			switch (event.type) {
 				case 'mouseup':
-					resetRef.current.style.backgroundImage = setBackgroundImage(
-						Reactions.ReactionSmile
-					);
+					ref.current.style.backgroundImage = setImage(Reactions.ReactionSmile);
 					switch (state.status) {
 						case 'idle':
 							setState((state) => fillGrid(point, state));
@@ -121,35 +99,10 @@ export const Game: FC = () => {
 					}
 					break;
 				case 'mousedown':
-					resetRef.current.style.backgroundImage = setBackgroundImage(
-						Reactions.ReactionWow
-					);
+					ref.current.style.backgroundImage = setImage(Reactions.ReactionWow);
 			}
 		},
-		[
-			state.status,
-			extractPoint,
-			fillGrid,
-			openFields,
-			resetRef.current,
-			setBackgroundImage,
-		]
-	);
-
-	const onRightClick = useCallback(
-		(event: MouseEvent<HTMLDivElement>) => {
-			event.preventDefault();
-
-			if (event.nativeEvent.button === 1) return;
-
-			try {
-				const point = extractPoint(event.target as HTMLDivElement);
-				setState((state) => setFlagOrQuestion(point, state));
-			} catch {
-				return;
-			}
-		},
-		[extractPoint, setFlagOrQuestion]
+		[state.status, state]
 	);
 
 	return (
@@ -157,44 +110,22 @@ export const Game: FC = () => {
 			<div className={styles.header}>
 				<Counter count={BOMBS_COUNT - state.flags} />
 				<button
-					ref={resetRef}
+					ref={ref}
 					className={styles.reset}
 					style={{
-						backgroundImage: setBackgroundImage(
-							Reactions.ReactionSmile
-						),
+						backgroundImage: setImage(Reactions.ReactionSmile),
 					}}
-					onMouseUp={onResetClick}
-					onMouseDown={onResetClick}
+					onMouseUp={resetClickHandler}
+					onMouseDown={resetClickHandler}
 				/>
 				<Timer status={state.status} />
 			</div>
-			<div
-				className={styles.grid}
-				onMouseUp={onLeftClick}
-				onMouseDown={onLeftClick}
-				onContextMenu={onRightClick}
-			>
-				{state.matrix.map((row, x) => {
-					return (
-						<div key={x}>
-							{row.map((cell, y) => {
-								return (
-									<GridCell
-										key={x + '_' + y}
-										style={{
-											backgroundImage: setBackgroundImage(
-												defineField(cell)
-											),
-										}}
-										point={cell.point}
-									/>
-								);
-							})}
-						</div>
-					);
-				})}
-			</div>
+			<Grid
+				grid={state}
+				onMouseDown={gridClickHandler}
+				onMouseUp={gridClickHandler}
+				onContextMenu={gridClickHandler}
+			/>
 		</div>
 	);
 };

@@ -10,7 +10,6 @@ import FieldFlag from '../assets/fields/flag.png';
 import FieldExploded from '../assets/fields/exploded.png';
 import FieldWrong from '../assets/fields/wrong.png';
 import FieldQuestion from '../assets/fields/question.png';
-import FieldPushedQuestion from '../assets/fields/question_pushed.png';
 import DigitZero from '../assets/digits/0.png';
 import DigitOne from '../assets/digits/1.png';
 import DigitTwo from '../assets/digits/2.png';
@@ -46,7 +45,6 @@ export const Fields = {
 	FieldWrong,
 	FieldExploded,
 	FieldQuestion,
-	FieldPushedQuestion,
 } as const;
 
 export const Digits = [

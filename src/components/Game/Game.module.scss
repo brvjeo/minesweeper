@@ -1,5 +1,3 @@
-@use '@styles/mixins.scss';
-
 .panel {
     background: lightgrey;
     border-style: outset;
@@ -10,7 +8,9 @@
 }
 
 .header {
-    @include mixins.flexible(space-between, center, row);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .reset {
@@ -18,9 +18,4 @@
     height: 26px;
     background-position: center;
     background-size: cover;
-}
-
-.grid {
-    border-style: inset;
-    @include mixins.flexible();
 }

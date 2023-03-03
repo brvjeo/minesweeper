@@ -1,36 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ProcessStatus } from '../types';
+import { useCallback, useLayoutEffect, useState } from 'react';
+import { TProcessStatus } from '../types';
 
 let interval: NodeJS.Timer;
 
 export function useTimer() {
-	const [status, setStatus] = useState<ProcessStatus>('idle');
+	const [status, setStatus] = useState<TProcessStatus>('idle');
 	const [state, setState] = useState(0);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		switch (status) {
 			case 'started':
-				interval = setInterval(
-					() => setState((state) => ++state),
-					1000
-				);
+				interval = setInterval(() => setState((state) => ++state), 1000);
 				break;
-			case 'restarted':
+			case 'resetted':
 				clearInterval(interval);
 				setStatus('idle');
 				break;
 			case 'idle':
 				setState(0);
 				break;
-			case 'ended':
+			case 'failed':
 				clearInterval(interval);
 				break;
 		}
 	}, [status]);
 
 	const start = useCallback(() => setStatus('started'), []);
-	const stop = useCallback(() => setStatus('ended'), []);
-	const reset = useCallback(() => setStatus('restarted'), []);
+	const stop = useCallback(() => setStatus('failed'), []);
+	const reset = useCallback(() => setStatus('resetted'), []);
 
 	return { time: state, start, stop, reset };
 }

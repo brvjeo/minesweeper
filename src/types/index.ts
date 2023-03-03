@@ -1,12 +1,7 @@
-export type ProcessStatus =
-	| 'idle'
-	| 'started'
-	| 'ended'
-	| 'restarted'
-	| 'solved';
+export type TProcessStatus = 'idle' | 'started' | 'failed' | 'resetted' | 'solved';
 
-export type Cell = {
-	point: Point;
+export type TCell = {
+	point: TPoint;
 	isBomb: boolean;
 	isQuestion: boolean;
 	isOpened: boolean;
@@ -16,18 +11,15 @@ export type Cell = {
 	count: number;
 };
 
-export type Grid = {
-	matrix: Matrix;
-	bombs: Array<Point>;
+export type TGrid = {
+	matrix: TMatrix;
+	bombs: Array<TPoint>;
 	opened: number;
 	flags: number;
 	questions: number;
-	status: ProcessStatus;
+	status: TProcessStatus;
 };
 
-export type Matrix = Array<Array<Cell>>;
+export type TMatrix = Array<Array<TCell>>;
 
-export type Point = {
-	x: number;
-	y: number;
-};
+export type TPoint = { x: number; y: number };

@@ -1,19 +1,12 @@
-import React, { CSSProperties, FC } from 'react';
 import styles from './GridCell.module.scss';
-import { Point } from '../../types';
+import React, { CSSProperties, FC } from 'react';
+import { TPoint } from '../../types';
 
-type Props = {
+type TProps = {
 	style?: CSSProperties;
-	point: Point;
+	point: TPoint;
 };
 
-export const GridCell: FC<Props> = ({ style, point }) => {
-	return (
-		<div
-			data-x={point.x}
-			data-y={point.y}
-			className={styles.cell}
-			style={style}
-		/>
-	);
+export const GridCell: FC<TProps> = ({ style, point }) => {
+	return <div data-x={point.x} data-y={point.y} className={styles.cell} style={style} />;
 };
