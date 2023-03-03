@@ -90,15 +90,59 @@ export const openFields = ({ x, y }: Point, grid: Grid): Grid => {
 		grid.opened++;
 		grid.matrix[x][y].isOpened = true;
 	} else {
-		traverse({ x, y }, grid);
+		const queue: Array<Point> = [{ x, y }];
+		const visited: Array<Point> = [];
+
+		while (queue.length) {
+			const { x, y } = queue.shift();
+			visited.push({ x, y });
+
+			if (!grid.matrix[x][y].isOpened) {
+				grid.matrix[x][y].isOpened = true;
+				grid.opened++;
+			}
+
+			traverse({ x: x - 1, y: y - 1 }, grid, queue, visited);
+			traverse({ x: x, y: y - 1 }, grid, queue, visited);
+			traverse({ x: x + 1, y: y - 1 }, grid, queue, visited);
+			traverse({ x: x + 1, y: y }, grid, queue, visited);
+			traverse({ x: x + 1, y: y + 1 }, grid, queue, visited);
+			traverse({ x: x, y: y + 1 }, grid, queue, visited);
+			traverse({ x: x - 1, y: y + 1 }, grid, queue, visited);
+			traverse({ x: x - 1, y: y }, grid, queue, visited);
+		}
 	}
 
 	return { ...grid };
 };
 
-export const traverse = ({ x, y }: Point, grid: Grid) => {
-	grid.opened++;
-	grid.matrix[x][y].isOpened = true;
+export const traverse = ({ x, y }: Point, grid: Grid, queue, visited) => {
+	if (isInBounds({ x, y }) && isValidToTraverse(grid.matrix[x][y], visited)) {
+		findWayToTraverse(grid.matrix[x][y], grid, queue, visited);
+	}
+};
+
+export const findWayToTraverse = (
+	cell: Cell,
+	grid: Grid,
+	queue: Array<Point>,
+	visited: Array<Point>
+) => {
+	if (cell.count > 0) {
+		if (!cell.isOpened) {
+			cell.isOpened = true;
+			grid.opened++;
+		}
+		visited.push(cell.point);
+	} else {
+		queue.push(cell.point);
+	}
+};
+
+export const isValidToTraverse = (cell: Cell, visited: Array<Point>) => {
+	return (
+		!visited.find((point) => pointsEqual(point, cell.point)) && !cell.isBomb
+	);
 };
 
 export const getRandomArray = (
@@ -128,62 +172,34 @@ export const setOpened = ({ x, y }: Point, { matrix }: Grid) => {
 };
 
 export const updateCounters = ({ x, y }: Point, { matrix }: Grid) => {
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y - 1 }) &&
-		!matrix[x - 1][y - 1].isBomb
-	) {
+	if (isInBounds({ x: x - 1, y: y - 1 }) && !matrix[x - 1][y - 1].isBomb) {
 		matrix[x - 1][y - 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y - 1 }) &&
-		!matrix[x][y - 1].isBomb
-	) {
+	if (isInBounds({ x, y: y - 1 }) && !matrix[x][y - 1].isBomb) {
 		matrix[x][y - 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y - 1 }) &&
-		!matrix[x + 1][y - 1].isBomb
-	) {
+	if (isInBounds({ x: x + 1, y: y - 1 }) && !matrix[x + 1][y - 1].isBomb) {
 		matrix[x + 1][y - 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y }) &&
-		!matrix[x + 1][y].isBomb
-	) {
+	if (isInBounds({ x: x + 1, y }) && !matrix[x + 1][y].isBomb) {
 		matrix[x + 1][y].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x + 1, y: y + 1 }) &&
-		!matrix[x + 1][y + 1].isBomb
-	) {
+	if (isInBounds({ x: x + 1, y: y + 1 }) && !matrix[x + 1][y + 1].isBomb) {
 		matrix[x + 1][y + 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x, y: y + 1 }) &&
-		!matrix[x][y + 1].isBomb
-	) {
+	if (isInBounds({ x, y: y + 1 }) && !matrix[x][y + 1].isBomb) {
 		matrix[x][y + 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y: y + 1 }) &&
-		!matrix[x - 1][y + 1].isBomb
-	) {
+	if (isInBounds({ x: x - 1, y: y + 1 }) && !matrix[x - 1][y + 1].isBomb) {
 		matrix[x - 1][y + 1].count++;
 	}
-	if (
-		isInBounds(GRID_WIDTH, GRID_HEIGHT, { x: x - 1, y }) &&
-		!matrix[x - 1][y].isBomb
-	) {
+	if (isInBounds({ x: x - 1, y }) && !matrix[x - 1][y].isBomb) {
 		matrix[x - 1][y].count++;
 	}
 };
 
-export const isInBounds = (
-	width: number,
-	height: number,
-	{ x, y }: Point
-): boolean => {
-	return x < width && x >= 0 && y < height && y >= 0;
+export const isInBounds = ({ x, y }: Point): boolean => {
+	return x < GRID_WIDTH && x >= 0 && y < GRID_HEIGHT && y >= 0;
 };
 
 export const defineField = (cell: Cell): string => {
