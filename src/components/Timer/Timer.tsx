@@ -15,6 +15,7 @@ export const Timer: FC<Props> = ({ status }) => {
 			case 'started':
 				start();
 				break;
+			case 'solved':
 			case 'ended':
 				stop();
 				break;

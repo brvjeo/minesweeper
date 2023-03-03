@@ -83,9 +83,12 @@ export const openFields = ({ x, y }: Point, grid: Grid): Grid => {
 		grid.status = 'ended';
 		grid.matrix[x][y].isExploded = true;
 		grid.bombs.forEach(({ x, y }) => {
-			grid.opened++;
-			grid.matrix[x][y].isOpened = true;
+			if (!grid.matrix[x][y].isFlag) {
+				grid.opened++;
+				grid.matrix[x][y].isOpened = true;
+			}
 		});
+		checkForWrongFlags({ x, y }, grid);
 	} else if (grid.matrix[x][y].count > 0) {
 		grid.opened++;
 		grid.matrix[x][y].isOpened = true;
@@ -113,7 +116,85 @@ export const openFields = ({ x, y }: Point, grid: Grid): Grid => {
 		}
 	}
 
+	if (grid.opened === GRID_WIDTH * GRID_HEIGHT - grid.bombs.length) {
+		grid.status = 'solved';
+	}
+
 	return { ...grid };
+};
+
+export const checkForWrongFlags = ({ x, y }: Point, grid: Grid) => {
+	if (
+		isInBounds({ x: x - 1, y: y - 1 }) &&
+		grid.matrix[x - 1][y - 1].isFlag &&
+		!grid.matrix[x - 1][y - 1].isBomb
+	) {
+		grid.matrix[x - 1][y - 1].isWrong = true;
+		grid.matrix[x - 1][y - 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x, y: y - 1 }) &&
+		grid.matrix[x][y - 1].isFlag &&
+		!grid.matrix[x][y - 1].isBomb
+	) {
+		grid.matrix[x][y - 1].isWrong = true;
+		grid.matrix[x][y - 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x: x + 1, y: y - 1 }) &&
+		grid.matrix[x + 1][y - 1].isFlag &&
+		!grid.matrix[x + 1][y - 1].isBomb
+	) {
+		grid.matrix[x + 1][y - 1].isWrong = true;
+		grid.matrix[x + 1][y - 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x: x + 1, y }) &&
+		grid.matrix[x + 1][y].isFlag &&
+		!grid.matrix[x + 1][y].isBomb
+	) {
+		grid.matrix[x + 1][y].isWrong = true;
+		grid.matrix[x + 1][y].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x: x + 1, y: y + 1 }) &&
+		grid.matrix[x + 1][y + 1].isFlag &&
+		!grid.matrix[x + 1][y + 1].isBomb
+	) {
+		grid.matrix[x + 1][y + 1].isWrong = true;
+		grid.matrix[x + 1][y + 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x, y: y + 1 }) &&
+		grid.matrix[x][y + 1].isFlag &&
+		!grid.matrix[x][y + 1].isBomb
+	) {
+		grid.matrix[x][y + 1].isWrong = true;
+		grid.matrix[x][y + 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x: x - 1, y: y + 1 }) &&
+		grid.matrix[x - 1][y + 1].isFlag &&
+		!grid.matrix[x - 1][y + 1].isBomb
+	) {
+		grid.matrix[x - 1][y + 1].isWrong = true;
+		grid.matrix[x - 1][y + 1].isOpened = true;
+	}
+
+	if (
+		isInBounds({ x: x - 1, y }) &&
+		grid.matrix[x - 1][y].isFlag &&
+		!grid.matrix[x - 1][y].isBomb
+	) {
+		grid.matrix[x - 1][y].isWrong = true;
+		grid.matrix[x - 1][y].isOpened = true;
+	}
 };
 
 export const traverse = ({ x, y }: Point, grid: Grid, queue, visited) => {
@@ -207,11 +288,11 @@ export const defineField = (cell: Cell): string => {
 		if (cell.isBomb) {
 			if (cell.isExploded) {
 				return Fields.FieldExploded;
-			} else if (cell.isWrong) {
-				return Fields.FieldWrong;
 			} else {
 				return Fields.FieldBomb;
 			}
+		} else if (cell.isWrong) {
+			return Fields.FieldWrong;
 		} else if (cell.count > 0) {
 			return Counts[cell.count];
 		} else {

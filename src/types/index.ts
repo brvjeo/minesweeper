@@ -1,4 +1,9 @@
-export type ProcessStatus = 'idle' | 'started' | 'ended' | 'restarted';
+export type ProcessStatus =
+	| 'idle'
+	| 'started'
+	| 'ended'
+	| 'restarted'
+	| 'solved';
 
 export type Cell = {
 	point: Point;

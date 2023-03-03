@@ -1,6 +1,7 @@
 import React, {
 	BaseSyntheticEvent,
 	FC,
+	MouseEvent,
 	useCallback,
 	useEffect,
 	useRef,
@@ -18,7 +19,7 @@ import {
 	setFlagOrQuestion,
 	openFields,
 } from '../../utils';
-import { BOMBS_COUNT, Reactions } from '../../constants';
+import { BOMBS_COUNT, Fields, Reactions } from '../../constants';
 import { GridCell } from '@components/GridCell/GridCell';
 import { Timer } from '@components/Timer/Timer';
 
@@ -35,25 +36,27 @@ export const Game: FC = () => {
 	const resetRef = useRef<HTMLButtonElement>();
 	const [state, setState] = useState<Grid>(grid);
 
-	useEffect(() => console.log(state));
-
 	useEffect(() => {
 		if (state.status === 'ended') {
 			resetRef.current.style.backgroundImage = setBackgroundImage(
 				Reactions.ReactionSad
 			);
+		} else if (state.status === 'solved') {
+			resetRef.current.style.backgroundImage = setBackgroundImage(
+				Reactions.ReactionGlasses
+			);
 		}
-	}, [state.status]);
+	}, [state.status, resetRef.current, setBackgroundImage]);
 
 	useEffect(() => {
 		setState((state) => ({
 			...state,
 			matrix: fillMatrix(state.matrix),
 		}));
-	}, []);
+	}, [fillMatrix]);
 
 	const onResetClick = useCallback(
-		({ type, currentTarget }: BaseSyntheticEvent) => {
+		({ type, currentTarget }: MouseEvent<HTMLButtonElement>) => {
 			switch (type) {
 				case 'mouseup':
 					currentTarget.style.backgroundImage = setBackgroundImage(
@@ -61,7 +64,8 @@ export const Game: FC = () => {
 					);
 					if (
 						state.status === 'started' ||
-						state.status === 'ended'
+						state.status === 'ended' ||
+						state.status === 'solved'
 					) {
 						setState((state) => ({
 							matrix: fillMatrix([]),
@@ -80,15 +84,17 @@ export const Game: FC = () => {
 					break;
 			}
 		},
-		[state.status]
+		[state.status, fillMatrix, setBackgroundImage]
 	);
 
 	const onLeftClick = useCallback(
-		(event: BaseSyntheticEvent) => {
+		(event: MouseEvent<HTMLDivElement>) => {
+			if (event.nativeEvent.button === 2) return;
+
 			let point: Point;
 
 			try {
-				point = extractPoint(event.target);
+				point = extractPoint(event.target as HTMLDivElement);
 				if (
 					state.matrix[point.x][point.y].isOpened ||
 					state.matrix[point.x][point.y].isQuestion ||
@@ -96,35 +102,54 @@ export const Game: FC = () => {
 				) {
 					throw new Error();
 				}
-				console.log(state.matrix[point.x][point.y]);
 			} catch {
 				return;
 			}
 
-			switch (state.status) {
-				case 'idle':
-					setState((state) => fillGrid(point, state));
+			switch (event.type) {
+				case 'mouseup':
+					resetRef.current.style.backgroundImage = setBackgroundImage(
+						Reactions.ReactionSmile
+					);
+					switch (state.status) {
+						case 'idle':
+							setState((state) => fillGrid(point, state));
+							break;
+						case 'started':
+							setState((state) => openFields(point, state));
+							break;
+					}
 					break;
-				case 'started':
-					setState((state) => openFields(point, state));
-					break;
+				case 'mousedown':
+					resetRef.current.style.backgroundImage = setBackgroundImage(
+						Reactions.ReactionWow
+					);
 			}
 		},
-		[state.status]
+		[
+			state.status,
+			extractPoint,
+			fillGrid,
+			openFields,
+			resetRef.current,
+			setBackgroundImage,
+		]
 	);
 
 	const onRightClick = useCallback(
-		(event: BaseSyntheticEvent) => {
+		(event: MouseEvent<HTMLDivElement>) => {
 			event.preventDefault();
 
+			if (event.nativeEvent.button === 1) return;
+
 			try {
-				const point = extractPoint(event.target);
+				const point = extractPoint(event.target as HTMLDivElement);
 				setState((state) => setFlagOrQuestion(point, state));
 			} catch {
 				return;
 			}
 		},
-		[extractPoint]
+		[extractPoint, setFlagOrQuestion]
 	);
 
 	return (
@@ -146,7 +171,8 @@ export const Game: FC = () => {
 			</div>
 			<div
 				className={styles.grid}
-				onClick={onLeftClick}
+				onMouseUp={onLeftClick}
+				onMouseDown={onLeftClick}
 				onContextMenu={onRightClick}
 			>
 				{state.matrix.map((row, x) => {
