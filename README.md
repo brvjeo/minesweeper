@@ -1,13 +1,19 @@
 # Minesweeper
 
 ## Run
-
+_Choose one of these 3 ways:_
+- 1
 ```
 $ npm i
 $ npm run start
 ```
+- 2
 
-Also available on **GitHub Pages**.
+Open `index.html` file in root folder.
+
+- 3
+
+Also available on [**GitHub Pages**](https://brvjeo.github.io/minesweeper/).
 
 ## Stack
 
