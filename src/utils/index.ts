@@ -23,21 +23,22 @@ export const fillMatrix = (matrix: TMatrix): TMatrix => {
 };
 
 export const setFlagOrQuestion = ({ x, y }: TPoint, grid: TGrid): TGrid => {
-	const cell = grid.matrix[x][y];
-
-	if (cell.isOpened) return grid;
-
-	if (cell.isFlag) {
-		setQuestion(cell.point, grid);
-		unsetFlag(cell.point, grid);
-	} else if (cell.isQuestion) {
-		unsetQuestion(cell.point, grid);
-	} else {
-		if (grid.flags < BOMBS_COUNT) {
-			setFlag(cell.point, grid);
-		} else {
+	switch (true) {
+		case grid.matrix[x][y].isOpened:
 			return grid;
-		}
+		case grid.matrix[x][y].isFlag:
+			setQuestion(grid.matrix[x][y].point, grid);
+			unsetFlag(grid.matrix[x][y].point, grid);
+			break;
+		case grid.matrix[x][y].isQuestion:
+			unsetQuestion(grid.matrix[x][y].point, grid);
+			break;
+		default:
+			if (grid.flags < BOMBS_COUNT) {
+				setFlag(grid.matrix[x][y].point, grid);
+			} else {
+				return grid;
+			}
 	}
 
 	return {
@@ -46,21 +47,21 @@ export const setFlagOrQuestion = ({ x, y }: TPoint, grid: TGrid): TGrid => {
 };
 
 export const fillGrid = (point: TPoint, grid: TGrid): TGrid => {
-	const availablePoints: Array<TPoint> = [];
+	const points: Array<TPoint> = [];
 
 	for (let x = 0; x < GRID_WIDTH; x++) {
 		for (let y = 0; y < GRID_HEIGHT; y++) {
 			if (!pointsEqual({ x, y }, point)) {
-				availablePoints.push({ x, y });
+				points.push({ x, y });
 			}
 		}
 	}
 
-	const indexes = getRandomArray(0, availablePoints.length - 1, BOMBS_COUNT);
+	const indexes = getRandomArray(0, points.length - 1, BOMBS_COUNT);
 
 	indexes.forEach((i) => {
-		setBomb(availablePoints[i], grid);
-		updateCounters(availablePoints[i], grid);
+		setBomb(points[i], grid);
+		updateCounters(points[i], grid);
 	});
 
 	return {
@@ -71,42 +72,13 @@ export const fillGrid = (point: TPoint, grid: TGrid): TGrid => {
 
 export const openFields = ({ x, y }: TPoint, grid: TGrid): TGrid => {
 	if (grid.matrix[x][y].isBomb) {
-		grid.status = 'failed';
-		grid.matrix[x][y].isExploded = true;
-		grid.bombs.forEach(({ x, y }) => {
-			if (!grid.matrix[x][y].isFlag) {
-				setOpened({ x, y }, grid);
-			}
-		});
+		setExploded({ x, y }, grid);
+		openAllBombs(grid);
 		checkForWrongFlags({ x, y }, grid);
 	} else if (grid.matrix[x][y].count > 0) {
 		setOpened({ x, y }, grid);
 	} else {
-		const queue: Array<TPoint> = [{ x, y }];
-		const visited: Array<TPoint> = [];
-
-		while (queue.length) {
-			const { x, y } = queue.shift();
-			visited.push({ x, y });
-
-			if (!grid.matrix[x][y].isOpened) {
-				setOpened({ x, y }, grid);
-				if (grid.matrix[x][y].isFlag) {
-					unsetFlag({ x, y }, grid);
-				} else if (grid.matrix[x][y].isQuestion) {
-					unsetQuestion({ x, y }, grid);
-				}
-			}
-
-			traverse({ x: x - 1, y: y - 1 }, grid, queue, visited);
-			traverse({ x: x, y: y - 1 }, grid, queue, visited);
-			traverse({ x: x + 1, y: y - 1 }, grid, queue, visited);
-			traverse({ x: x + 1, y: y }, grid, queue, visited);
-			traverse({ x: x + 1, y: y + 1 }, grid, queue, visited);
-			traverse({ x: x, y: y + 1 }, grid, queue, visited);
-			traverse({ x: x - 1, y: y + 1 }, grid, queue, visited);
-			traverse({ x: x - 1, y: y }, grid, queue, visited);
-		}
+		openClearArea({ x, y }, grid);
 	}
 
 	if (grid.opened === GRID_WIDTH * GRID_HEIGHT - grid.bombs.length) {
@@ -114,6 +86,34 @@ export const openFields = ({ x, y }: TPoint, grid: TGrid): TGrid => {
 	}
 
 	return { ...grid };
+};
+
+export const openClearArea = ({ x, y }: TPoint, grid: TGrid) => {
+	const queue: Array<TPoint> = [{ x, y }];
+	const visited: Array<TPoint> = [];
+
+	while (queue.length) {
+		const { x, y } = queue.shift();
+		visited.push({ x, y });
+
+		if (!grid.matrix[x][y].isOpened) {
+			setOpened({ x, y }, grid);
+			if (grid.matrix[x][y].isFlag) {
+				unsetFlag({ x, y }, grid);
+			} else if (grid.matrix[x][y].isQuestion) {
+				unsetQuestion({ x, y }, grid);
+			}
+		}
+
+		traverse({ x: x - 1, y: y - 1 }, grid, queue, visited);
+		traverse({ x: x, y: y - 1 }, grid, queue, visited);
+		traverse({ x: x + 1, y: y - 1 }, grid, queue, visited);
+		traverse({ x: x + 1, y: y }, grid, queue, visited);
+		traverse({ x: x + 1, y: y + 1 }, grid, queue, visited);
+		traverse({ x: x, y: y + 1 }, grid, queue, visited);
+		traverse({ x: x - 1, y: y + 1 }, grid, queue, visited);
+		traverse({ x: x - 1, y: y }, grid, queue, visited);
+	}
 };
 
 export const checkForWrongFlags = (point: TPoint, grid: TGrid) => {
@@ -179,6 +179,11 @@ export const setOpened = ({ x, y }: TPoint, grid: TGrid) => {
 	grid.opened++;
 };
 
+export const setExploded = ({ x, y }: TPoint, grid: TGrid) => {
+	grid.status = 'failed';
+	grid.matrix[x][y].isExploded = true;
+};
+
 export const setWrong = ({ x, y }: TPoint, grid: TGrid) => {
 	grid.matrix[x][y].isWrong = true;
 	grid.matrix[x][y].isOpened = true;
@@ -202,6 +207,14 @@ export const unsetQuestion = ({ x, y }: TPoint, grid: TGrid) => {
 export const setQuestion = ({ x, y }: TPoint, grid: TGrid) => {
 	grid.matrix[x][y].isQuestion = true;
 	grid.questions++;
+};
+
+export const openAllBombs = (grid: TGrid) => {
+	grid.bombs.forEach(({ x, y }) => {
+		if (!grid.matrix[x][y].isFlag) {
+			setOpened({ x, y }, grid);
+		}
+	});
 };
 
 export const updateCounters = (point: TPoint, { matrix }: TGrid) => {
